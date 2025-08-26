@@ -1,0 +1,49 @@
+server:
+  port: ${APP_PORT:8080}
+
+spring:
+  datasource:
+    url: jdbc:postgresql://${DB_HOST:postgres}:${DB_PORT:5432}/${DB_NAME:orgdb}
+    username: ${DB_USER:orguser}
+    password: ${DB_PASSWORD:orgpass}
+  
+  mail:
+    host: ${SMTP_HOST:smtp}
+    port: ${SMTP_PORT:1025}
+    username: ${SMTP_USER:}
+    password: ${SMTP_PASS:}
+    properties:
+      mail.smtp.auth: ${SMTP_AUTH:false}
+      mail.smtp.starttls.enable: ${SMTP_STARTTLS:false}
+      mail.debug: ${SMTP_DEBUG:false}
+
+  jpa:
+    hibernate:
+      ddl-auto: update  # auto create/update tables
+    properties:
+      hibernate.jdbc.time_zone: Africa/Nairobi
+      hibernate.format_sql: true
+    open-in-view: false
+
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          jwk-set-uri: ${KEYCLOAK_JWKS_URI:http://keycloak:8081/realms/master/protocol/openid-connect/certs}
+          issuer-uri: ${KEYCLOAK_ISSUER_URI:http://localhost:8081/realms/master}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+
+# admin-client usage 
+keycloak:
+  url: ${KEYCLOAK_BASE_URL:http://keycloak:8080}
+  admin:
+    realm: ${KEYCLOAK_ADMIN_REALM:master}
+    client-id: ${KEYCLOAK_ADMIN_CLIENT_ID:admin-cli}
+    username: ${KEYCLOAK_ADMIN_USER:admin}
+    password: ${KEYCLOAK_ADMIN_PASSWORD:admin}
+  required-admin-role: ${KEYCLOAK_REQUIRED_ROLE:admin}

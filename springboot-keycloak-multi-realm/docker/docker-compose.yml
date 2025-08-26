@@ -1,0 +1,73 @@
+version: "3.9"
+
+services:
+  postgres:
+    image: postgres:16
+    container_name: pg
+    environment:
+      POSTGRES_DB: ${DB_NAME:-orgdb}
+      POSTGRES_USER: ${DB_USER:-orguser}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-orgpass}
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-orguser} -d ${DB_NAME:-orgdb}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  keycloak:
+    image: quay.io/keycloak/keycloak:25.0
+    container_name: keycloak
+    command: ["start-dev","--http-port=8080"]
+    environment:
+      KEYCLOAK_ADMIN: ${KEYCLOAK_ADMIN:-admin}
+      KEYCLOAK_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD:-admin}
+    ports:
+      - "8081:8080"
+
+  smtp:
+    image: mailhog/mailhog:v1.0.1
+    container_name: smtp
+    ports:
+      - "1025:1025"
+      - "8025:8025"
+
+  app:
+    build:
+      context: ..
+      dockerfile: Dockerfile
+    container_name: multirealm-app
+    environment:
+      APP_PORT: 8080
+      KEYCLOAK_JWKS_URI: http://keycloak:8080/realms/master/protocol/openid-connect/certs
+      KEYCLOAK_ISSUER_URI: http://localhost:8081/realms/master
+      KEYCLOAK_BASE_URL: http://keycloak:8080
+      KEYCLOAK_ADMIN_REALM: master
+      KEYCLOAK_ADMIN_CLIENT_ID: admin-cli
+      KEYCLOAK_ADMIN_USER: ${KEYCLOAK_ADMIN_USER:-admin}
+      KEYCLOAK_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD:-admin}
+      KEYCLOAK_REQUIRED_ROLE: admin
+
+      SMTP_HOST: smtp
+      SMTP_PORT: 1025
+      SMTP_AUTH: "false"
+      SMTP_STARTTLS: "false"
+      SMTP_DEBUG: "false"
+
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_NAME: ${DB_NAME:-orgdb}
+      DB_USER: ${DB_USER:-orguser}
+      DB_PASSWORD: ${DB_PASSWORD:-orgpass}
+    ports:
+      - "8080:8080"
+    depends_on:
+      - postgres
+      - keycloak
+      - smtp
+
+volumes:
+  pgdata:
